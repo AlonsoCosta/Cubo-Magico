@@ -1,0 +1,17 @@
+# Compilação C++
+build/
+*.o
+*.d
+/solver/solver
+/solver/gerar_pdb
+/solver/testes
+
+# Tabela pré-computada (Pattern Database ~88 MB)
+data/*.bin
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
