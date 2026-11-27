@@ -6,7 +6,7 @@ Programa que recebe um cubo mágico 3×3×3 embaralhado, encontra a **menor sequ
 
 ## Visão Geral da Arquitetura
 
-O projeto é dividido em duas metades desacopladas que se comunicam apenas por texto:
+O projeto é dividido em duas metades desacopladas que se comunicam apenas por texto, seguindo as convenções definidas em [CONTRATO.md](CONTRATO.md):
 
 - **C++ (`solver/`) — o "cérebro":** recebe o embaralhamento, executa a busca IDA* examinando milhões de estados por segundo e devolve a sequência ótima de movimentos.
 - **Python (`visual/`) — a "tela":** renderiza o cubo em 3D, oferece os botões da interface e anima os movimentos um a um no navegador.
@@ -27,6 +27,7 @@ O C++ é organizado em **três programas separados**, cada um com seu `main`:
 ## Estrutura de Pastas
 
 ```text
+CONTRATO.md        Contrato C++ ↔ Python e convenções do cubo
 solver/            Código C++
   Makefile
   include/         Cabeçalhos (.hpp)
