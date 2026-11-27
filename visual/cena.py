@@ -1,79 +1,73 @@
-from math import pi
+from math import pi, sqrt
+from typing import NamedTuple
 
-from vpython import box, canvas, color, compound, rate, vector
+from vpython import box, canvas, color, compound, distant_light, rate, vector
 
-TAMANHO_CUBINHO = 0.95 # Tamanho de cada cubinho do cubo
-LARGURA_ADESIVO = 0.85 # Tamanho do adesivo que sinaliza cada cor
-ESPESSURA_ADESIVO = 0.02 
-DESLOCAMENTO_ADESIVO = 0.48 # Deslocamento do adesivo para posicionar corretamente
+# ---------------------------------------------------------------------------
+# Constantes de geometria
+# ---------------------------------------------------------------------------
+TAMANHO_CUBINHO = 0.93       # Corpo preto de cada cubinho (borda mais fina)
+LARGURA_ADESIVO = 0.87       # Largura/altura do adesivo colorido
+ESPESSURA_ADESIVO = 0.02     # Espessura do adesivo (quase plano)
+DESLOCAMENTO_ADESIVO = 0.48  # Distância do centro à face externa
 
-CORES = {
+# ---------------------------------------------------------------------------
+# Paleta de cores (laranja real via vetor RGB, sem o amarelado do VPython)
+# ---------------------------------------------------------------------------
+_LARANJA = color.orange  # substituído por RGB mais vivo abaixo
+_LARANJA = vector(1.0, 0.45, 0.0)
+
+CORES: dict[str, vector] = {
     "U": color.white,
     "D": color.yellow,
     "F": color.green,
     "B": color.blue,
     "R": color.red,
-    "L": color.orange,
+    "L": _LARANJA,
 }
+
+# ---------------------------------------------------------------------------
+# Definição interna das faces de adesivo
+# ---------------------------------------------------------------------------
+class _FaceAdesivo(NamedTuple):
+    eixo: str
+    valor: int
+    face: str
+    pos_local: vector
+    tamanho: vector
+
+
+_FACES_ADESIVOS: tuple[_FaceAdesivo, ...] = (
+    _FaceAdesivo("x",  1, "R", vector( DESLOCAMENTO_ADESIVO, 0, 0), vector(ESPESSURA_ADESIVO, LARGURA_ADESIVO, LARGURA_ADESIVO)),
+    _FaceAdesivo("x", -1, "L", vector(-DESLOCAMENTO_ADESIVO, 0, 0), vector(ESPESSURA_ADESIVO, LARGURA_ADESIVO, LARGURA_ADESIVO)),
+    _FaceAdesivo("y",  1, "U", vector(0,  DESLOCAMENTO_ADESIVO, 0), vector(LARGURA_ADESIVO, ESPESSURA_ADESIVO, LARGURA_ADESIVO)),
+    _FaceAdesivo("y", -1, "D", vector(0, -DESLOCAMENTO_ADESIVO, 0), vector(LARGURA_ADESIVO, ESPESSURA_ADESIVO, LARGURA_ADESIVO)),
+    _FaceAdesivo("z",  1, "F", vector(0, 0,  DESLOCAMENTO_ADESIVO), vector(LARGURA_ADESIVO, LARGURA_ADESIVO, ESPESSURA_ADESIVO)),
+    _FaceAdesivo("z", -1, "B", vector(0, 0, -DESLOCAMENTO_ADESIVO), vector(LARGURA_ADESIVO, LARGURA_ADESIVO, ESPESSURA_ADESIVO)),
+)
+
 
 def criar_cena() -> canvas:
     """Inicializa a cena 3D com câmera diagonal exibindo as faces U, F e R."""
-    scene = canvas(         # configs da tela
-        title="Cubo Mágico 3x3x3",
-        width=1200,
+    scene = canvas(
+        title="<b style='font-size:1.4em'>Cubo Mágico 3×3×3</b>",
+        width=1900,
         height=900,
-        background=color.gray(0.15),
+        background=color.gray(0.12),
+        fov=0.6,          # campo de visão menor → menos distorção perspectiva
     )
-    scene.center = vector(0, 0, 0)        #
-    scene.up = vector(0, 1, 0)            # Posicionamento da câmera para mostrar os três lados do cubo
-    scene.forward = vector(-1, -1, -1)    #
+
+    # Câmera diagonal normalizada: mostra exatamente U, F e R
+    _d = 1.0 / sqrt(3)
+    scene.center  = vector(0, 0, 0)
+    scene.up      = vector(0, 1, 0)
+    scene.forward = vector(-_d, -_d, -_d)
+
+    # Iluminação direcional suave para realçar profundidade das faces
+    distant_light(direction=vector( 1,  2,  1), color=color.gray(0.6))
+    distant_light(direction=vector(-1, -1, -2), color=color.gray(0.25))
+
     return scene
-
-
-_FACES_ADESIVOS = (
-    (
-        "x",
-        1,
-        "R",
-        vector(DESLOCAMENTO_ADESIVO, 0, 0),
-        vector(ESPESSURA_ADESIVO, LARGURA_ADESIVO, LARGURA_ADESIVO),
-    ),
-    (
-        "x",
-        -1,
-        "L",
-        vector(-DESLOCAMENTO_ADESIVO, 0, 0),
-        vector(ESPESSURA_ADESIVO, LARGURA_ADESIVO, LARGURA_ADESIVO),
-    ),
-    (
-        "y",
-        1,
-        "U",
-        vector(0, DESLOCAMENTO_ADESIVO, 0),
-        vector(LARGURA_ADESIVO, ESPESSURA_ADESIVO, LARGURA_ADESIVO),
-    ),
-    (
-        "y",
-        -1,
-        "D",
-        vector(0, -DESLOCAMENTO_ADESIVO, 0),
-        vector(LARGURA_ADESIVO, ESPESSURA_ADESIVO, LARGURA_ADESIVO),
-    ),
-    (
-        "z",
-        1,
-        "F",
-        vector(0, 0, DESLOCAMENTO_ADESIVO),
-        vector(LARGURA_ADESIVO, LARGURA_ADESIVO, ESPESSURA_ADESIVO),
-    ),
-    (
-        "z",
-        -1,
-        "B",
-        vector(0, 0, -DESLOCAMENTO_ADESIVO),
-        vector(LARGURA_ADESIVO, LARGURA_ADESIVO, ESPESSURA_ADESIVO),
-    ),
-)
 
 
 def criar_cubinho(x: int, y: int, z: int) -> compound:
@@ -86,9 +80,9 @@ def criar_cubinho(x: int, y: int, z: int) -> compound:
             color=color.black,
         )
     ]
-    for eixo, valor, face, pos_local, tamanho in _FACES_ADESIVOS:
-        if coords[eixo] == valor:
-            partes.append(box(pos=pos_local, size=tamanho, color=CORES[face]))
+    for fa in _FACES_ADESIVOS:
+        if coords[fa.eixo] == fa.valor:
+            partes.append(box(pos=fa.pos_local, size=fa.tamanho, color=CORES[fa.face]))
 
     cubinho = compound(partes)
     cubinho.pos = vector(x, y, z)
